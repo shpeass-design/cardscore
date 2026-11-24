@@ -1,1 +1,305 @@
 
+package com.example.cardscore
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+data class GameState(
+    val a: Int,
+    val b: Int
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme {
+                CardScoreScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun CardScoreScreen() {
+    var teamA by remember { mutableStateOf("TEAM A") }
+    var teamB by remember { mutableStateOf("TEAM B") }
+
+    var scoreA by remember { mutableIntStateOf(120) }
+    var scoreB by remember { mutableIntStateOf(95) }
+
+    var points by remember { mutableStateOf("10") }
+
+    var history by remember {
+        mutableStateOf(listOf<GameState>())
+    }
+
+    val amount = points.toIntOrNull() ?: 0
+
+    fun update(team: Int, value: Int) {
+        history = history + GameState(scoreA, scoreB)
+
+        if (team == 1) scoreA += value
+        else scoreB += value
+    }
+
+    val dark = Color(0xFF142A38)
+    val card = Color(0xFF244453)
+    val green = Color(0xFF55B985)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dark)
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "♠ CARD SCORE ♥",
+            color = Color.White,
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            "YOUR GAME • SCOREBOARD",
+            color = Color.LightGray,
+            fontSize = 12.sp
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TeamBox(
+                modifier = Modifier.weight(1f),
+                name = teamA,
+                score = scoreA,
+                onName = { teamA = it },
+                onAdd = { update(1, amount) },
+                onMinus = { update(1, -amount) },
+                onEdit = {
+                    history = history + GameState(scoreA, scoreB)
+                    scoreA = it.toIntOrNull() ?: 0
+                },
+                card = card,
+                green = green
+            )
+
+            TeamBox(
+                modifier = Modifier.weight(1f),
+                name = teamB,
+                score = scoreB,
+                onName = { teamB = it },
+                onAdd = { update(2, amount) },
+                onMinus = { update(2, -amount) },
+                onEdit = {
+                    history = history + GameState(scoreA, scoreB)
+                    scoreB = it.toIntOrNull() ?: 0
+                },
+                card = card,
+                green = green
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = card)
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("SELECT POINTS", color = Color.White)
+
+                OutlinedTextField(
+                    value = points,
+                    onValueChange = { points = it },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                    singleLine = true
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("5", "10", "20", "50").forEach {
+                        Button(onClick = { points = it }) {
+                            Text(it)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = card)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("GAME RESULT", color = Color.White)
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    when {
+                        scoreA > scoreB -> "$teamA WINNER"
+                        scoreB > scoreA -> "$teamB WINNER"
+                        else -> "MATCH DRAW"
+                    },
+                    color = green,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    "$scoreA  -  $scoreB",
+                    color = Color.White,
+                    fontSize = 25.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (history.isNotEmpty()) {
+                        val old = history.last()
+                        scoreA = old.a
+                        scoreB = old.b
+                        history = history.dropLast(1)
+                    }
+                }
+            ) {
+                Text("UNDO")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF9B4646)
+                ),
+                onClick = {
+                    history = history + GameState(scoreA, scoreB)
+                    scoreA = 0
+                    scoreB = 0
+                }
+            ) {
+                Text("RESET")
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            "CARD SCORE • VERSION 1.0",
+            color = Color.LightGray,
+            fontSize = 11.sp
+        )
+    }
+}
+
+@Composable
+fun TeamBox(
+    modifier: Modifier,
+    name: String,
+    score: Int,
+    onName: (String) -> Unit,
+    onAdd: () -> Unit,
+    onMinus: () -> Unit,
+    onEdit: (String) -> Unit,
+    card: Color,
+    green: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = card
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(9.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onName,
+                singleLine = true,
+                label = { Text("Team Name") }
+            )
+
+            Spacer(Modifier.height(15.dp))
+
+            Text(
+                score.toString(),
+                color = green,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Button(
+                    onClick = onMinus,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Text("-")
+                }
+
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Text("+")
+                }
+            }
+
+            OutlinedTextField(
+                value = score.toString(),
+                onValueChange = onEdit,
+                label = { Text("Edit Score") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+                singleLine = true
+            )
+        }
+    }
+}
+
